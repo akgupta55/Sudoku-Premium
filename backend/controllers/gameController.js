@@ -38,13 +38,15 @@ exports.generatePuzzle = (req, res) => {
 };
 
 exports.saveScore = async (req, res) => {
-    const { difficulty, timeTaken } = req.body;
+    const { difficulty, timeTaken, mistakes, level } = req.body;
     try {
         const scoreData = {
             userId: req.user.id,
             email: req.user.email,
             difficulty,
             timeTaken,
+            mistakes: mistakes || 0,
+            level: level || null,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
