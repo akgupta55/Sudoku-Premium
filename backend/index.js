@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -25,9 +26,18 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/game', require('./routes/gameRoutes'));
 
-app.get('/', (req, res) => {
-    res.send('Sudoku Hackathon API is running...');
-});
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+    app.get('*', (req, res) => {
+        const indexFile = path.join(__dirname, '../frontend/dist/index.html');
+        res.sendFile(indexFile);
+    });
+} else {
+    app.get('/', (req, res) => {
+        res.send('Sudoku Hackathon API is running...');
+    });
+}
 
 // Database Connection
 mongoose
