@@ -68,7 +68,7 @@ try {
 
 // 6. Static Files (Production)
 if (process.env.NODE_ENV === 'production') {
-    const distPath = path.join(__dirname, '../frontend/dist');
+    const distPath = path.join(__dirname, 'dist');
     console.log(`📂 Checking Production Assets at: ${distPath}`);
     if (fs.existsSync(distPath)) {
         app.use(express.static(distPath));
@@ -77,12 +77,7 @@ if (process.env.NODE_ENV === 'production') {
         });
         console.log('✅ Production Assets Found and Mounted');
     } else {
-        console.error('❌ ERROR: Static/Front-end assets MISSING at:', distPath);
-        // List parent directory to help debug
-        try {
-            const parentDir = path.join(__dirname, '..');
-            console.log(`Parent Directory (${parentDir}) contents: ${fs.readdirSync(parentDir)}`);
-        } catch (e) { }
+        console.error('❌ ERROR: Static assets MISSING at:', distPath);
     }
 } else {
     app.get('/', (req, res) => res.send('Sudoku API Dev Mode'));
