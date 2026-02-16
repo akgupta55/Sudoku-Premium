@@ -26,5 +26,6 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-# Start command
-CMD ["node", "backend/index.js"]
+# Start command from backend directory
+WORKDIR /app/backend
+CMD ["node", "index.js"]
