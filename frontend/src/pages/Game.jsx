@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Timer, RotateCcw, CheckCircle, Share2, AlertCircle } from 'lucide-react';
+import { Timer, RotateCcw, AlertCircle, CheckCircle, Play, Share2, Lightbulb, Coins } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 const Game = () => {
     const { difficulty } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, deductPoints } = useAuth();
 
     const [grid, setGrid] = useState([]);
     const [solution, setSolution] = useState('');
@@ -21,13 +22,17 @@ const Game = () => {
     const [completed, setCompleted] = useState(false);
     const [mistakes, setMistakes] = useState(0);
     const [gameOver, setGameOver] = useState(false);
+    const [hintsUsed, setHintsUsed] = useState(0);
 
-    const maxMistakes = {
-        'easy': Infinity,
-        'medium': 5,
-        'hard': 3,
-        'expert': 1
-    }[difficulty] || 3;
+    const maxMistakes = difficulty === 'expert' ? 3 : difficulty === 'hard' ? 5 : 10;
+
+    const hintLimits = {
+        easy: 5,
+        medium: 7,
+        hard: 10,
+        expert: 12
+    };
+    const maxHints = hintLimits[difficulty] || 5;
 
     useEffect(() => {
         fetchPuzzle();
@@ -125,6 +130,40 @@ const Game = () => {
         }
     };
 
+    const handleHint = async () => {
+        if (completed || gameOver || hintsUsed >= maxHints) return;
+        if (!user || user.points < 5) {
+            setError('Not enough points for a hint!');
+            setTimeout(() => setError(''), 3000);
+            return;
+        }
+
+        // Find all empty indices
+        const emptyIndices = grid.map((val, idx) => val === null ? idx : null).filter(idx => idx !== null);
+        if (emptyIndices.length === 0) return;
+
+        // Pick a random one
+        const randomIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        const correctValue = parseInt(solution[randomIdx]);
+
+        try {
+            await deductPoints(5);
+            const newGrid = [...grid];
+            newGrid[randomIdx] = correctValue;
+            setGrid(newGrid);
+            setHintsUsed(prev => prev + 1);
+
+            // Check if this filled the last box
+            if (!newGrid.includes(null)) {
+                if (newGrid.join('') === solution) {
+                    handleWin();
+                }
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to use hint');
+        }
+    };
+
     const handleWin = async () => {
         setCompleted(true);
         confetti({
@@ -182,27 +221,46 @@ const Game = () => {
         <div className="flex flex-col h-full max-w-2xl mx-auto px-2 sm:px-4 pb-4">
             {/* Header section */}
             <div className="flex justify-between items-center mb-4 sm:mb-6 glass p-3 sm:p-4 rounded-2xl border-white/5 shrink-0">
-                <div className="flex items-center gap-2 sm:gap-4" role="status" aria-live="polite">
-                    <div className="flex items-center gap-1 sm:gap-2 text-blue-400 font-bold" aria-label={`Timer: ${formatTime(seconds)}`}>
-                        <Timer size={18} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-1 sm:gap-2 text-blue-400 font-bold">
+                        <Timer size={18} className="sm:w-[22px] sm:h-[22px]" />
                         <span className="text-lg sm:text-xl tabular-nums">{formatTime(seconds)}</span>
                     </div>
-                    {difficulty !== 'expert' && (
-                        <div
-                            className="flex items-center gap-1 sm:gap-2 text-red-400 font-bold px-2 sm:px-3 py-1 bg-red-500/10 rounded-full text-xs sm:text-sm"
-                            aria-label={`${mistakes} of ${maxMistakes} mistakes made`}
-                        >
-                            <AlertCircle size={14} className="sm:w-[16px] sm:h-[16px]" aria-hidden="true" />
-                            <span className="hidden xs:inline">Mistakes: </span>{mistakes}/{maxMistakes === Infinity ? '∞' : maxMistakes}
-                        </div>
-                    )}
+                    <div className="flex items-center gap-1 sm:gap-2 text-yellow-400 font-bold px-2 sm:px-3 py-1 bg-yellow-500/10 rounded-full text-xs sm:text-sm">
+                        <Coins size={14} className="sm:w-[16px] sm:h-[16px]" />
+                        <span>{user?.points || 0}</span>
+                    </div>
                 </div>
-                <div className="text-white/60 font-medium uppercase tracking-widest text-[10px] sm:text-sm">
-                    {difficulty} Level
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleHint}
+                        disabled={hintsUsed >= maxHints || (user?.points || 0) < 5}
+                        className={`
+                            flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all font-bold text-xs sm:text-sm
+                            ${hintsUsed >= maxHints ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95'}
+                        `}
+                    >
+                        <Lightbulb size={16} />
+                        <span>Hint {hintsUsed}/{maxHints}</span>
+                        <span className="text-[10px] bg-blue-500 text-white px-1 rounded ml-1">-5</span>
+                    </button>
+
+                    <button onClick={fetchPuzzle} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition-colors shrink-0">
+                        <RotateCcw size={18} className="sm:w-[22px] sm:h-[22px]" />
+                    </button>
                 </div>
-                <button onClick={fetchPuzzle} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition-colors shrink-0">
-                    <RotateCcw size={18} className="sm:w-[22px] sm:h-[22px]" />
-                </button>
+            </div>
+
+            {/* Status section */}
+            <div className="flex justify-between items-center mb-6 px-2">
+                <div className="text-white/40 font-black uppercase tracking-[0.2em] text-[10px]">
+                    {difficulty} Mode
+                </div>
+                <div className="flex items-center gap-2 text-red-400/60 font-bold text-xs">
+                    <AlertCircle size={14} />
+                    <span>Mistakes: {mistakes}/{maxMistakes}</span>
+                </div>
             </div>
 
             {error && <div className="bg-red-500/10 text-red-500 p-3 rounded-xl mb-4 flex items-center gap-3 text-xs sm:text-sm"><AlertCircle size={18} /> {error}</div>}

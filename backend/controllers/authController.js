@@ -14,6 +14,7 @@ exports.signup = async (req, res) => {
         await db.collection('users').doc(userRecord.uid).set({
             username,
             email,
+            points: 1000,
             createdAt: new Date(),
         });
 

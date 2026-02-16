@@ -27,8 +27,19 @@ export const AuthProvider = ({ children }) => {
                 const userInfo = {
                     id: firebaseUser.uid,
                     email: firebaseUser.email,
-                    username: firebaseUser.displayName || firebaseUser.email.split('@')[0]
+                    username: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                    points: 1000 // Default, will be updated by profile fetch if possible
                 };
+
+                // Better: Refresh user profile from our DB to get current points
+                try {
+                    const res = await axios.get('/api/user/profile');
+                    userInfo.points = res.data.points;
+                    userInfo.username = res.data.username || userInfo.username;
+                } catch (err) {
+                    console.error('Could not fetch user profile for points');
+                }
+
                 setUser(userInfo);
                 localStorage.setItem('user', JSON.stringify(userInfo));
             } else {
@@ -50,19 +61,28 @@ export const AuthProvider = ({ children }) => {
     };
 
     const signup = async (username, email, password) => {
-        // We still use our backend signup to handle Firestore record creation 
-        // OR we could use Firebase client SDK for everything. 
-        // Let's use the backend to keep it consistent with our migration plan.
         const res = await axios.post('/api/auth/signup', { username, email, password });
-        // After backend signup, we sign in the user on the client
         await signInWithEmailAndPassword(auth, email, password);
         return res.data;
+    };
+
+    const deductPoints = async (amount = 5) => {
+        try {
+            const res = await axios.post('/api/user/deduct-points', { amount });
+            const updatedUser = { ...user, points: res.data.points };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            return res.data.points;
+        } catch (err) {
+            console.error('Failed to deduct points:', err.response?.data?.msg);
+            throw err;
+        }
     };
 
     const logout = () => signOut(auth);
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, signup, logout, deductPoints }}>
             {children}
         </AuthContext.Provider>
     );

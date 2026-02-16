@@ -41,6 +41,7 @@ app.use('/api/', limiter);
 // 4. API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/game', require('./routes/gameRoutes'));
+app.use('/api/user', require('./routes/userRoutes'));
 
 // 5. Static Assets (Production Only)
 if (process.env.NODE_ENV === 'production') {

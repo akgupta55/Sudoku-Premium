@@ -38,7 +38,12 @@ const Dashboard = () => {
 
     return (
         <div className="max-w-4xl mx-auto py-12">
-            <div className="text-center mb-16">
+            <div className="flex flex-col items-center text-center mb-16">
+                <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-full mb-8 animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.1)]">
+                    <Coins size={20} className="text-yellow-400" />
+                    <span className="text-yellow-400 font-black text-lg">{user?.points || 0}</span>
+                </div>
+
                 <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent italic">
                     READY TO PLAY?
                 </h1>
