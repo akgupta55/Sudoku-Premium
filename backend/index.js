@@ -1,6 +1,5 @@
-console.log('--- 🚀 SUDOKU PREMIUM STARTUP SEQUENCE 🚀 ---');
-console.log('Current Directory:', process.cwd());
-console.log('Dirname:', __dirname);
+const logger = require('./utils/logger');
+logger.info('--- 🚀 SUDOKU PREMIUM STARTUP SEQUENCE 🚀 ---');
 
 const express = require('express');
 const path = require('path');
@@ -11,76 +10,76 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-// 1. Critical Error Handlers
-process.on('uncaughtException', (err) => {
-    console.error('🔥 FATAL: Uncaught Exception:', err);
-    process.exit(1);
-});
-process.on('unhandledRejection', (reason) => {
-    console.error('🔥 FATAL: Unhandled Rejection:', reason);
-});
-
 dotenv.config();
-console.log('✅ Environment Variables Loaded');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// 2. Immediate Port Binding for Cloud Run
-console.log(`📡 Attempting to bind to port ${PORT}...`);
-const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server is officially LISTENING on 0.0.0.0:${PORT}`);
-
-    // Connect to DB as background task
-    if (process.env.MONGODB_URI) {
-        mongoose.connect(process.env.MONGODB_URI)
-            .then(() => console.log('✅ MongoDB Connection Successful'))
-            .catch((err) => console.error('❌ MongoDB Connection Failed:', err.message));
-    } else {
-        console.warn('⚠️  Warning: MONGODB_URI is not set!');
-    }
-});
-
-server.on('error', (err) => {
-    console.error('🔥 Server Error during listen:', err);
+// 1. Critical Error Handlers
+process.on('uncaughtException', (err) => {
+    logger.error('🔥 FATAL: Uncaught Exception:', err);
     process.exit(1);
 });
 
-// 3. Health Check
-app.get('/health', (req, res) => res.status(200).send('OK'));
-console.log('✅ Health Check Endpoint Registered');
+process.on('unhandledRejection', (reason) => {
+    logger.error('🔥 FATAL: Unhandled Rejection:', reason);
+});
 
-// 4. Middleware
-app.set('trust proxy', 1); // Essential for Cloud Run
+// 2. Health Check & Core Middleware
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
-console.log('✅ Middleware Configured');
 
-// 5. Routes
-try {
-    app.use('/api/auth', require('./routes/authRoutes'));
-    app.use('/api/game', require('./routes/gameRoutes'));
-    console.log('✅ Routes Loaded');
-} catch (err) {
-    console.error('❌ Failed to load routes:', err.message);
-}
+// 3. Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { msg: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', limiter);
 
-// 6. Static Files (Production)
+// 4. API Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/game', require('./routes/gameRoutes'));
+
+// 5. Static Assets (Production Only)
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, 'dist');
-    console.log(`📂 Checking Production Assets at: ${distPath}`);
     if (fs.existsSync(distPath)) {
         app.use(express.static(distPath));
         app.get('*', (req, res) => {
             res.sendFile(path.join(distPath, 'index.html'));
         });
-        console.log('✅ Production Assets Found and Mounted');
+        logger.info('✅ Production assets mounted');
     } else {
-        console.error('❌ ERROR: Static assets MISSING at:', distPath);
+        logger.error('❌ Static assets missing at:', distPath);
     }
 } else {
-    app.get('/', (req, res) => res.send('Sudoku API Dev Mode'));
+    app.get('/', (req, res) => res.send('Sudoku API in Development Mode'));
 }
 
-console.log('--- 🏁 SETUP SEQUENCE COMPLETE 🏁 ---');
+// 6. DB Connection and Server Start
+const startServer = async () => {
+    try {
+        if (process.env.MONGODB_URI) {
+            await mongoose.connect(process.env.MONGODB_URI);
+            logger.info('✅ MongoDB Connected');
+        } else {
+            logger.warn('⚠️ MONGODB_URI missing');
+        }
+
+        app.listen(PORT, '0.0.0.0', () => {
+            logger.info(`🚀 Server listening on 0.0.0.0:${PORT}`);
+            logger.info('--- 🏁 SETUP SEQUENCE COMPLETE 🏁 ---');
+        });
+    } catch (err) {
+        logger.error('🔥 Failed to start server:', err.message);
+        process.exit(1);
+    }
+};
+
+startServer();
+
+module.exports = app; // For testing

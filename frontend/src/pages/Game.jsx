@@ -165,14 +165,17 @@ const Game = () => {
         <div className="flex flex-col h-full max-w-2xl mx-auto px-2 sm:px-4 pb-4">
             {/* Header section */}
             <div className="flex justify-between items-center mb-4 sm:mb-6 glass p-3 sm:p-4 rounded-2xl border-white/5 shrink-0">
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="flex items-center gap-1 sm:gap-2 text-blue-400 font-bold">
-                        <Timer size={18} className="sm:w-[22px] sm:h-[22px]" />
+                <div className="flex items-center gap-2 sm:gap-4" role="status" aria-live="polite">
+                    <div className="flex items-center gap-1 sm:gap-2 text-blue-400 font-bold" aria-label={`Timer: ${formatTime(seconds)}`}>
+                        <Timer size={18} className="sm:w-[22px] sm:h-[22px]" aria-hidden="true" />
                         <span className="text-lg sm:text-xl tabular-nums">{formatTime(seconds)}</span>
                     </div>
                     {difficulty !== 'expert' && (
-                        <div className="flex items-center gap-1 sm:gap-2 text-red-400 font-bold px-2 sm:px-3 py-1 bg-red-500/10 rounded-full text-xs sm:text-sm">
-                            <AlertCircle size={14} className="sm:w-[16px] sm:h-[16px]" />
+                        <div
+                            className="flex items-center gap-1 sm:gap-2 text-red-400 font-bold px-2 sm:px-3 py-1 bg-red-500/10 rounded-full text-xs sm:text-sm"
+                            aria-label={`${mistakes} of ${maxMistakes} mistakes made`}
+                        >
+                            <AlertCircle size={14} className="sm:w-[16px] sm:h-[16px]" aria-hidden="true" />
                             <span className="hidden xs:inline">Mistakes: </span>{mistakes}/{maxMistakes === Infinity ? '∞' : maxMistakes}
                         </div>
                     )}
