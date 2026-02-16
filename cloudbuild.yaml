@@ -22,7 +22,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'MONGODB_URI=${_MONGODB_URI},JWT_SECRET=${_JWT_SECRET},NODE_ENV=production'
+      - 'NODE_ENV=production'
 
 substitutions:
   _SERVICE_NAME: sudoku-premium
@@ -30,8 +30,6 @@ substitutions:
   _AR_HOSTNAME: europe-west1-docker.pkg.dev
   _AR_PROJECT_ID: ajay-promptwars-project
   _AR_REPOSITORY: cloud-run-source-deploy
-  _MONGODB_URI: '' # Must be provided by Build Trigger
-  _JWT_SECRET: ''   # Must be provided by Build Trigger
 
 images:
   - '${_AR_HOSTNAME}/${_AR_PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}/${_SERVICE_NAME}:${COMMIT_SHA}'

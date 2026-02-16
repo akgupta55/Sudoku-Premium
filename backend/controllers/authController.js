@@ -1,42 +1,49 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const { db, auth: firebaseAuth } = require('../config/firebaseAdmin');
 
 exports.signup = async (req, res) => {
     const { username, email, password } = req.body;
     try {
-        let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ msg: 'User already exists' });
+        // 1. Create user in Firebase Auth
+        const userRecord = await firebaseAuth.createUser({
+            email,
+            password,
+            displayName: username,
+        });
 
-        user = new User({ username, email, password });
-        await user.save();
+        // 2. Store extra data in Firestore
+        await db.collection('users').doc(userRecord.uid).set({
+            username,
+            email,
+            createdAt: new Date(),
+        });
 
-        const payload = { user: { id: user.id } };
-        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
-            if (err) throw err;
-            res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
+        res.json({
+            msg: 'User created successfully',
+            user: { id: userRecord.uid, username, email }
         });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Signup Error:', err.message);
+        res.status(400).json({ msg: err.message });
     }
 };
 
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    // Note: With Firebase, login usually happens on the frontend.
+    // The frontend sends the IdToken to the backend in the Authorization header.
+    // This route can be used to sync/fetch user data from Firestore after frontend login.
+    const { email } = req.body;
     try {
-        let user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ msg: 'Invalid Credentials' });
+        const userSnapshot = await db.collection('users').where('email', '==', email).get();
+        if (userSnapshot.empty) return res.status(400).json({ msg: 'User not found' });
 
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
+        const userDoc = userSnapshot.docs[0];
+        const userData = userDoc.data();
 
-        const payload = { user: { id: user.id } };
-        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
-            if (err) throw err;
-            res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
+        res.json({
+            user: { id: userDoc.id, username: userData.username, email: userData.email }
         });
     } catch (err) {
-        console.error(err.message);
+        console.error('Login Error:', err.message);
         res.status(500).send('Server Error');
     }
 };

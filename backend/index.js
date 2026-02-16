@@ -1,14 +1,12 @@
-const logger = require('./utils/logger');
-logger.info('--- 🚀 SUDOKU PREMIUM STARTUP SEQUENCE 🚀 ---');
-
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const logger = require('./utils/logger');
+const { db } = require('./config/firebaseAdmin');
 
 dotenv.config();
 
@@ -60,26 +58,11 @@ if (process.env.NODE_ENV === 'production') {
     app.get('/', (req, res) => res.send('Sudoku API in Development Mode'));
 }
 
-// 6. DB Connection and Server Start
-const startServer = async () => {
-    try {
-        if (process.env.MONGODB_URI) {
-            await mongoose.connect(process.env.MONGODB_URI);
-            logger.info('✅ MongoDB Connected');
-        } else {
-            logger.warn('⚠️ MONGODB_URI missing');
-        }
-
-        app.listen(PORT, '0.0.0.0', () => {
-            logger.info(`🚀 Server listening on 0.0.0.0:${PORT}`);
-            logger.info('--- 🏁 SETUP SEQUENCE COMPLETE 🏁 ---');
-        });
-    } catch (err) {
-        logger.error('🔥 Failed to start server:', err.message);
-        process.exit(1);
-    }
-};
-
-startServer();
+// 6. Server Start
+app.listen(PORT, '0.0.0.0', () => {
+    logger.info('--- 🚀 SUDOKU PREMIUM STARTUP (FIREBASE) 🚀 ---');
+    logger.info(`🚀 Server listening on 0.0.0.0:${PORT}`);
+    logger.info('--- 🏁 SETUP SEQUENCE COMPLETE 🏁 ---');
+});
 
 module.exports = app; // For testing

@@ -1,6 +1,5 @@
 const { getSudoku } = require('sudoku-gen');
-const Score = require('../models/Score');
-const User = require('../models/User');
+const { db, admin } = require('../config/firebaseAdmin');
 
 exports.generatePuzzle = (req, res) => {
     const { difficulty } = req.params; // easy, medium, hard
@@ -15,28 +14,37 @@ exports.generatePuzzle = (req, res) => {
 exports.saveScore = async (req, res) => {
     const { difficulty, timeTaken } = req.body;
     try {
-        const newScore = new Score({
+        const scoreData = {
             userId: req.user.id,
+            email: req.user.email,
             difficulty,
             timeTaken,
-        });
-        await newScore.save();
-        res.json(newScore);
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        const docRef = await db.collection('scores').add(scoreData);
+        res.json({ id: docRef.id, ...scoreData });
     } catch (err) {
-        console.error(err.message);
+        console.error('Save Score Error:', err.message);
         res.status(500).send('Server Error');
     }
 };
 
 exports.getLeaderboard = async (req, res) => {
     try {
-        const scores = await Score.find()
-            .populate('userId', 'username')
-            .sort({ timeTaken: 1 })
-            .limit(10);
+        const scoresSnapshot = await db.collection('scores')
+            .orderBy('timeTaken', 'asc')
+            .limit(10)
+            .get();
+
+        const scores = scoresSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
         res.json(scores);
     } catch (err) {
-        console.error(err.message);
+        console.error('Leaderboard Error:', err.message);
         res.status(500).send('Server Error');
     }
 };
