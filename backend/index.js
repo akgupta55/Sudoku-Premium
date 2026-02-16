@@ -10,11 +10,14 @@ dotenv.config();
 
 const app = express();
 
-// Security Middleware
-app.use(helmet());
+// Security Middleware (Relaxed CSP for production static serving)
+app.use(helmet({
+    contentSecurityPolicy: false,
+}));
+
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100
 });
 app.use('/api/', limiter);
 
@@ -28,10 +31,10 @@ app.use('/api/game', require('./routes/gameRoutes'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+    const distPath = path.join(__dirname, '../frontend/dist');
+    app.use(express.static(distPath));
     app.get('*', (req, res) => {
-        const indexFile = path.join(__dirname, '../frontend/dist/index.html');
-        res.sendFile(indexFile);
+        res.sendFile(path.join(distPath, 'index.html'));
     });
 } else {
     app.get('/', (req, res) => {
@@ -39,11 +42,18 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// Database Connection
-mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch((err) => console.log('Database Error:', err));
+// Database Connection (Async, don't block server start)
+if (!process.env.MONGODB_URI) {
+    console.error('FATAL ERROR: MONGODB_URI is not defined.');
+} else {
+    mongoose
+        .connect(process.env.MONGODB_URI)
+        .then(() => console.log('MongoDB Connected'))
+        .catch((err) => console.error('Database Connection Error:', err));
+}
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server ready and listening on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
