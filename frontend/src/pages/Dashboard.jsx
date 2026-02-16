@@ -45,7 +45,7 @@ const Dashboard = () => {
                 <p className="text-white/60 text-lg">Choose your level and show your skills on the scoreboard.</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-8 mb-16">
                 {difficulties.map((level) => (
                     <div
                         key={level.id}
@@ -66,6 +66,53 @@ const Dashboard = () => {
                         </button>
                     </div>
                 ))}
+            </div>
+
+            <div className="glass p-8 rounded-3xl border border-blue-500/20 bg-blue-500/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Trophy size={100} />
+                </div>
+                <div className="relative z-10">
+                    <h2 className="text-3xl font-bold mb-4 flex items-center gap-3">
+                        <Award className="text-yellow-400" />
+                        Level Sequence Mode
+                    </h2>
+                    <p className="text-white/60 mb-8 max-w-xl">
+                        A perfect training ground! Level 1 starts with just **1 box to solve**.
+                        The challenge increases box-by-box as you advance!
+                    </p>
+
+                    <div className="flex flex-wrap gap-4">
+                        <button
+                            onClick={() => navigate('/game/easy?level=1')}
+                            className="btn-primary bg-yellow-500 hover:bg-yellow-600 px-8 py-4 text-lg font-bold"
+                        >
+                            <Play size={20} fill="currentColor" />
+                            Start Level 1
+                        </button>
+
+                        <div className="flex items-center gap-2 bg-white/5 px-4 rounded-xl border border-white/10">
+                            <span className="text-white/40 text-sm">Jump to level:</span>
+                            <input
+                                type="number"
+                                min="1"
+                                max="80"
+                                defaultValue="1"
+                                className="bg-transparent text-white font-bold w-12 text-center outline-none"
+                                id="jumpLevel"
+                            />
+                            <button
+                                onClick={() => {
+                                    const val = document.getElementById('jumpLevel').value;
+                                    navigate(`/game/easy?level=${val}`);
+                                }}
+                                className="text-blue-400 hover:text-blue-300 font-bold p-2"
+                            >
+                                GO
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

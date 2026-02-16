@@ -44,7 +44,13 @@ const Game = () => {
         setMistakes(0);
         setGameOver(false);
         try {
-            const res = await axios.get(`/api/game/puzzle/${difficulty}`);
+            const queryParams = new URLSearchParams(window.location.search);
+            const level = queryParams.get('level');
+            const url = level
+                ? `/api/game/puzzle/${difficulty}?level=${level}`
+                : `/api/game/puzzle/${difficulty}`;
+
+            const res = await axios.get(url);
             const puzzleStr = res.data.puzzle;
             const solutionStr = res.data.solution;
 
@@ -257,18 +263,38 @@ const Game = () => {
                             <CheckCircle size={40} className="text-white" />
                         </div>
                         <h2 className="text-3xl font-bold mb-2">PUZZLE SOLVED!</h2>
-                        <p className="text-white/60 mb-8">You conquered the {difficulty} level in {formatTime(seconds)}.</p>
+                        <p className="text-white/60 mb-8">
+                            You conquered {new URLSearchParams(window.location.search).get('level') ? `Level ${new URLSearchParams(window.location.search).get('level')}` : `the ${difficulty} level`} in {formatTime(seconds)}.
+                        </p>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => navigate('/leaderboard')} className="btn-primary justify-center bg-white/10 hover:bg-white/20 text-white border border-white/10">
-                                Leaderboard
-                            </button>
-                            <button onClick={handleShare} className="btn-primary justify-center">
-                                <Share2 size={18} />
-                                Share
-                            </button>
+                        <div className="flex flex-col gap-4">
+                            {new URLSearchParams(window.location.search).get('level') && (
+                                <button
+                                    onClick={() => {
+                                        const currentLevel = parseInt(new URLSearchParams(window.location.search).get('level'));
+                                        navigate(`/game/${difficulty}?level=${currentLevel + 1}`);
+                                        setCompleted(false);
+                                        // fetchPuzzle will be triggered by the navigate if we sync it correctly, 
+                                        // but for now let's just force it
+                                        window.location.href = `/game/${difficulty}?level=${currentLevel + 1}`;
+                                    }}
+                                    className="btn-primary justify-center bg-blue-500 hover:bg-blue-600 py-4 text-lg"
+                                >
+                                    <Play size={18} fill="currentColor" />
+                                    Next Level: {parseInt(new URLSearchParams(window.location.search).get('level')) + 1}
+                                </button>
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => navigate('/leaderboard')} className="btn-primary justify-center bg-white/10 hover:bg-white/20 text-white border border-white/10">
+                                    Leaderboard
+                                </button>
+                                <button onClick={handleShare} className="btn-primary justify-center">
+                                    <Share2 size={18} />
+                                    Share
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={fetchPuzzle} className="mt-6 text-white/40 hover:text-white transition-colors">Play Again</button>
+                        <button onClick={() => navigate('/dashboard')} className="mt-6 text-white/40 hover:text-white transition-colors">Back to Dashboard</button>
                     </div>
                 </div>
             )}

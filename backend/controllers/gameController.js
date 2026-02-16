@@ -3,10 +3,36 @@ const { db, admin } = require('../config/firebaseAdmin');
 
 exports.generatePuzzle = (req, res) => {
     const { difficulty } = req.params; // easy, medium, hard
+    const { level } = req.query; // numeric level (1, 2, 3...)
+
     try {
         const sudoku = getSudoku(difficulty || 'easy');
+
+        // If level is provided, we manually "create" the puzzle by taking 
+        // the solution and clearing exactly X number of spots.
+        if (level && !isNaN(parseInt(level))) {
+            const levelNum = Math.min(Math.max(parseInt(level), 1), 80); // Cap at 80 empty spots
+            const solutionArr = sudoku.solution.split('');
+            const puzzleArr = [...solutionArr];
+
+            // Randomly pick indices to clear
+            const indices = Array.from({ length: 81 }, (_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+
+            const toClear = indices.slice(0, levelNum);
+            toClear.forEach(idx => {
+                puzzleArr[idx] = '-';
+            });
+
+            sudoku.puzzle = puzzleArr.join('');
+        }
+
         res.json(sudoku);
     } catch (err) {
+        console.error('Puzzle Generation Error:', err);
         res.status(500).json({ msg: 'Error generating puzzle' });
     }
 };
